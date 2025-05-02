@@ -44,106 +44,104 @@
 
   <div id="distance" class="text-2xl font-bold mt-4 text-pink-700"></div>
 
- <script>
-  const button = document.getElementById('getLocationBtn');
-  const locationDiv = document.getElementById('location');
-  const distanceDiv = document.createElement('div');
-  distanceDiv.className = "text-pink-700 text-xl font-semibold";
-  document.body.appendChild(distanceDiv);
-
-  // Replace these with actual coordinates of your girlfriend
-  const gfLat = 31.2526;  // Example: Kolkata
-  const gfLng = 75.7040;
-
-  let map, marker;
-
-  window.onload = function () {
-    map = L.map('map').setView([gfLat, gfLng], 5);
-
+  <script>
+    const button = document.getElementById('getLocationBtn');
+    const locationDiv = document.getElementById('location');
+    const distanceDiv = document.createElement('div');
+    distanceDiv.className = "text-pink-700 text-xl font-semibold mt-4";
+    document.body.appendChild(distanceDiv);
+  
+    // Girlfriend's coordinates
+    const gfLat = 31.2526;
+    const gfLng = 75.7040;
+  
+    let map = L.map('map'); // initialize empty map
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap'
     }).addTo(map);
-
-    // Marker for GF
+  
+    // Add GF marker
     L.marker([gfLat, gfLng])
       .addTo(map)
-      .bindPopup("💖 His Location 💖")
-      .openPopup();
-  };
-
-  button.addEventListener('click', () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const lat = position.coords.latitude;
-          const lng = position.coords.longitude;
-
-          locationDiv.innerHTML = `🧡 <strong>Your Location:</strong> ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-
-          if (marker) {
-            marker.setLatLng([lat, lng]);
-          } else {
-            marker = L.marker([lat, lng])
-              .addTo(map)
-              .bindPopup("💙 Your Location 💙")
-              .openPopup();
+      .bindPopup("💖 Her Location 💖");
+  
+    let marker, loveLine;
+  
+    button.addEventListener('click', () => {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+  
+            locationDiv.innerHTML = `🧡 <strong>Your Location:</strong> ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+  
+            // Your location marker
+            if (marker) {
+              marker.setLatLng([lat, lng]);
+            } else {
+              marker = L.marker([lat, lng])
+                .addTo(map)
+                .bindPopup("💙 Your Location 💙")
+                .openPopup();
+            }
+  
+            // Remove previous line if it exists
+            if (loveLine) {
+              map.removeLayer(loveLine);
+            }
+  
+            const points = [
+              [lat, lng],
+              [gfLat, gfLng]
+            ];
+  
+            const distance = getDistanceFromLatLonInKm(lat, lng, gfLat, gfLng);
+  
+            // Draw love line with distance tooltip
+            loveLine = L.polyline(points, {
+              color: 'hotpink',
+              weight: 4,
+              dashArray: '5, 10'
+            }).addTo(map)
+              .bindTooltip(`💕 ${distance.toFixed(2)} km 💕`, {
+                permanent: true,
+                direction: 'center',
+                className: 'text-pink-700 text-lg font-bold bg-white px-2 py-1 rounded'
+              })
+              .openTooltip();
+  
+            // Fit map to both markers
+            map.fitBounds(points, { padding: [50, 50] });
+  
+            distanceDiv.innerHTML = `You are <span class="text-3xl font-extrabold">${distance.toFixed(2)} km</span> away from me 💘`;
+          },
+          (error) => {
+            locationDiv.innerHTML = `<span class="text-red-600">❌ Error: ${error.message}</span>`;
           }
-
-          map.setView([lat, lng], 6);
-
-          // Draw a love line
-          const points = [
-            [lat, lng],
-            [gfLat, gfLng]
-          ];
-
-          if (window.loveLine) {
-            map.removeLayer(window.loveLine);
-          }
-
-          const distance = getDistanceFromLatLonInKm(lat, lng, gfLat, gfLng);
-
-          window.loveLine = L.polyline(points, {
-            color: 'hotpink',
-            weight: 4,
-            dashArray: '5, 10'
-          }).addTo(map)
-            .bindTooltip(`💕 ${distance.toFixed(2)} km 💕`, {
-              permanent: true,
-              direction: 'center',
-              className: 'text-pink-700 text-lg font-bold bg-white px-2 py-1 rounded'
-            })
-            .openTooltip();
-
-          distanceDiv.innerHTML = `You are <span class="text-3xl font-extrabold">${distance.toFixed(2)} km</span> away from me 💘`;
-
-        },
-        (error) => {
-          locationDiv.innerHTML = `<span class="text-red-600">❌ Error: ${error.message}</span>`;
-        }
-      );
-    } else {
-      locationDiv.innerHTML = `<span class="text-red-600">❌ Geolocation not supported</span>`;
+        );
+      } else {
+        locationDiv.innerHTML = `<span class="text-red-600">❌ Geolocation not supported</span>`;
+      }
+    });
+  
+    // Distance formula
+    function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
+      const R = 6371;
+      const dLat = deg2rad(lat2 - lat1);
+      const dLon = deg2rad(lon2 - lon1);
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c;
     }
-  });
-
-  // Haversine formula
-  function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
-    const R = 6371;
-    const dLat = deg2rad(lat2 - lat1);
-    const dLon = deg2rad(lon2 - lon1);
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
-      Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  }
-
-  function deg2rad(deg) {
-    return deg * (Math.PI / 180);
-  }
-</script>
-
+  
+    function deg2rad(deg) {
+      return deg * (Math.PI / 180);
+    }
+  </script>
+  
 </body>
 </html>
