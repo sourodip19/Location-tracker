@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Geolocation Map</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Leaflet CSS -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  />
+  
+  <!-- Leaflet JS -->
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""
+  ></script>
+</head>
+<body class="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-4 space-y-6">
+
+ 
+  <h1 class="text-3xl font-bold text-gray-800">Find Your Location on the Map</h1>
+  
+  <button
+    id="getLocationBtn"
+    class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded shadow"
+  >
+    Get My Location
+  </button>
+
+  <div id="location" class="text-gray-700 text-lg"></div>
+
+  <div id="map" class="w-full max-w-3xl rounded shadow" style="height: 400px;"></div>
+
+
+  <script>
+    const button = document.getElementById('getLocationBtn');
+    const locationDiv = document.getElementById('location');
+    let map, marker;
+
+    // Initialize map container first
+    window.onload = function() {
+      map = L.map('map'); // Initialize map without view
+    };
+
+    button.addEventListener('click', () => {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+
+            locationDiv.innerHTML = `📍 <strong>Latitude:</strong> ${lat}, <strong>Longitude:</strong> ${lng}`;
+
+            // Set map view and add layers
+            map.setView([lat, lng], 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+              attribution: '© OpenStreetMap'
+            }).addTo(map);
+
+            // Update or create marker
+            if (marker) {
+              marker.setLatLng([lat, lng]);
+            } else {
+              marker = L.marker([lat, lng])
+                .addTo(map)
+                .bindPopup("You are here!")
+                .openPopup();
+            }
+          },
+          (error) => {
+            locationDiv.innerHTML = `<span class="text-red-600">❌ Error: ${error.message}</span>`;
+          }
+        );
+      } else {
+        locationDiv.innerHTML = `<span class="text-red-600">❌ Geolocation not supported</span>`;
+      }
+    });
+  </script>
+</body>
+</html>
