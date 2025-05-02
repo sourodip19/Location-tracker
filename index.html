@@ -3,84 +3,147 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Geolocation Map</title>
+  <title>Love Distance Tracker 💕</title>
   <script src="https://cdn.tailwindcss.com"></script>
 
   <!-- Leaflet CSS -->
   <link
     rel="stylesheet"
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
     crossorigin=""
   />
   
   <!-- Leaflet JS -->
   <script
     src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
     crossorigin=""
   ></script>
-</head>
-<body class="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-4 space-y-6">
 
- 
-  <h1 class="text-3xl font-bold text-gray-800">Find Your Location on the Map</h1>
+  <style>
+    body {
+      background: linear-gradient(to right, #ffdde1, #ee9ca7); /* soft pink gradient */
+    }
+    #map {
+      height: 400px;
+    }
+  </style>
+</head>
+<body class="flex flex-col items-center justify-center min-h-screen p-4 space-y-6 text-center text-gray-800">
+
+  <h1 class="text-4xl font-bold">💖 Our Love Distance Tracker 💖</h1>
   
   <button
     id="getLocationBtn"
-    class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded shadow"
+    class="bg-pink-500 hover:bg-pink-600 text-white font-semibold py-2 px-6 rounded-full shadow"
   >
-    Get My Location
+    📍 Show My Location
   </button>
 
-  <div id="location" class="text-gray-700 text-lg"></div>
+  <div id="location" class="text-lg font-medium"></div>
+  <div id="map" class="w-full max-w-3xl rounded shadow"></div>
 
-  <div id="map" class="w-full max-w-3xl rounded shadow" style="height: 400px;"></div>
+  <div id="distance" class="text-2xl font-bold mt-4 text-pink-700"></div>
 
+ <script>
+  const button = document.getElementById('getLocationBtn');
+  const locationDiv = document.getElementById('location');
+  const distanceDiv = document.createElement('div');
+  distanceDiv.className = "text-pink-700 text-xl font-semibold";
+  document.body.appendChild(distanceDiv);
 
-  <script>
-    const button = document.getElementById('getLocationBtn');
-    const locationDiv = document.getElementById('location');
-    let map, marker;
+  // Replace these with actual coordinates of your girlfriend
+  const gfLat = 31.2526;  // Example: Kolkata
+  const gfLng = 75.7040;
 
-    // Initialize map container first
-    window.onload = function() {
-      map = L.map('map'); // Initialize map without view
-    };
+  let map, marker;
 
-    button.addEventListener('click', () => {
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            const lat = position.coords.latitude;
-            const lng = position.coords.longitude;
+  window.onload = function () {
+    map = L.map('map').setView([gfLat, gfLng], 5);
 
-            locationDiv.innerHTML = `📍 <strong>Latitude:</strong> ${lat}, <strong>Longitude:</strong> ${lng}`;
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap'
+    }).addTo(map);
 
-            // Set map view and add layers
-            map.setView([lat, lng], 13);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-              attribution: '© OpenStreetMap'
-            }).addTo(map);
+    // Marker for GF
+    L.marker([gfLat, gfLng])
+      .addTo(map)
+      .bindPopup("💖 Her Location 💖")
+      .openPopup();
+  };
 
-            // Update or create marker
-            if (marker) {
-              marker.setLatLng([lat, lng]);
-            } else {
-              marker = L.marker([lat, lng])
-                .addTo(map)
-                .bindPopup("You are here!")
-                .openPopup();
-            }
-          },
-          (error) => {
-            locationDiv.innerHTML = `<span class="text-red-600">❌ Error: ${error.message}</span>`;
+  button.addEventListener('click', () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+
+          locationDiv.innerHTML = `🧡 <strong>Your Location:</strong> ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+
+          if (marker) {
+            marker.setLatLng([lat, lng]);
+          } else {
+            marker = L.marker([lat, lng])
+              .addTo(map)
+              .bindPopup("💙 Your Location 💙")
+              .openPopup();
           }
-        );
-      } else {
-        locationDiv.innerHTML = `<span class="text-red-600">❌ Geolocation not supported</span>`;
-      }
-    });
-  </script>
+
+          map.setView([lat, lng], 6);
+
+          // Draw a love line
+          const points = [
+            [lat, lng],
+            [gfLat, gfLng]
+          ];
+
+          if (window.loveLine) {
+            map.removeLayer(window.loveLine);
+          }
+
+          const distance = getDistanceFromLatLonInKm(lat, lng, gfLat, gfLng);
+
+          window.loveLine = L.polyline(points, {
+            color: 'hotpink',
+            weight: 4,
+            dashArray: '5, 10'
+          }).addTo(map)
+            .bindTooltip(`💕 ${distance.toFixed(2)} km 💕`, {
+              permanent: true,
+              direction: 'center',
+              className: 'text-pink-700 text-lg font-bold bg-white px-2 py-1 rounded'
+            })
+            .openTooltip();
+
+          distanceDiv.innerHTML = `You are <span class="text-3xl font-extrabold">${distance.toFixed(2)} km</span> away from me 💘`;
+
+        },
+        (error) => {
+          locationDiv.innerHTML = `<span class="text-red-600">❌ Error: ${error.message}</span>`;
+        }
+      );
+    } else {
+      locationDiv.innerHTML = `<span class="text-red-600">❌ Geolocation not supported</span>`;
+    }
+  });
+
+  // Haversine formula
+  function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
+    const R = 6371;
+    const dLat = deg2rad(lat2 - lat1);
+    const dLon = deg2rad(lon2 - lon1);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
+
+  function deg2rad(deg) {
+    return deg * (Math.PI / 180);
+  }
+</script>
+
 </body>
 </html>
