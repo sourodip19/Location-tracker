@@ -21,136 +21,223 @@
 
   <style>
     body {
-      background: linear-gradient(to right, #ffdde1, #ee9ca7); /* soft pink gradient */
+      background: linear-gradient(to right, #fff5f5, #fed7e2);
     }
     #map {
-      height: 400px;
+      height: 450px;
+      border-radius: 20px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     }
     .custom-heart-icon {
-      font-size: 24px;
-      line-height: 1;
-      text-shadow: 1px 1px 2px #ff69b4;
+      font-size: 28px;
+      text-shadow: 2px 2px 4px rgba(255, 105, 180, 0.3);
+      transition: transform 0.3s ease;
+    }
+    .custom-heart-icon:hover {
+      transform: scale(1.2);
+    }
+    .leaflet-tooltip.love-tooltip {
+      background: rgba(255, 255, 255, 0.95) !important;
+      border: 2px solid #ff69b4 !important;
+      border-radius: 20px !important;
+      font-family: 'Arial Rounded MT Bold', sans-serif !important;
+      font-size: 1.1rem !important;
+      color: #ff1493 !important;
+      padding: 8px 15px !important;
     }
   </style>
 </head>
-<body class="flex flex-col items-center justify-center min-h-screen p-4 space-y-6 text-center text-gray-800">
+<body class="flex flex-col items-center justify-center min-h-screen p-6 space-y-6 text-center">
 
-  <h1 class="text-4xl font-bold">💖 Our Love Distance Tracker 💖</h1>
-  
+  <header class="space-y-4">
+    <h1 class="text-4xl font-bold bg-gradient-to-r from-pink-600 to-rose-600 bg-clip-text text-transparent">
+      💖 Our Love Distance Tracker 💖
+    </h1>
+    <p class="text-pink-600/80">Click below to see how close our hearts are 💘</p>
+  </header>
+
   <button
     id="getLocationBtn"
-    class="bg-pink-500 hover:bg-pink-600 text-white font-semibold py-2 px-6 rounded-full shadow"
+    class="bg-pink-500 hover:bg-pink-600 text-white font-semibold py-3 px-8 rounded-full shadow-lg transition-all duration-300 transform hover:scale-105"
   >
-    📍 Show My Location
+    📍 Find My Location
   </button>
 
   <div id="location" class="text-lg font-medium"></div>
-  <div id="map" class="w-full max-w-3xl rounded shadow"></div>
-
-  <div id="distance" class="text-2xl font-bold mt-4 text-pink-700"></div>
+  <div id="map" class="w-full max-w-4xl"></div>
 
   <script>
+    // Configuration
+    const MY_LAT = 31.25161;
+    const MY_LNG = 75.70459;
+    const MAP_ZOOM = 13;
+
+    // Elements
     const button = document.getElementById('getLocationBtn');
     const locationDiv = document.getElementById('location');
+    
+    // Create distance display
     const distanceDiv = document.createElement('div');
-    distanceDiv.className = "text-pink-700 text-xl font-semibold mt-4";
+    distanceDiv.className = "text-pink-700 text-xl font-semibold mt-2 animate-fade-in";
     document.body.appendChild(distanceDiv);
-  
-    // ✅ Your (static) coordinates
-    const myLat = 31.2526;
-    const myLng = 75.7040;
-  
-    // Initialize map centered on your location
-    let map = L.map('map').setView([myLat, myLng], 6);
+
+    // Map initialization
+    let map = L.map('map', {
+      zoomControl: false,
+      attributionControl: false
+    }).setView([0, 0], 1);
+
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap'
     }).addTo(map);
-  
-    // Marker for your static location
-    const heartIcon = L.divIcon({
+
+    // Custom icons
+    const createHeartIcon = (emoji) => L.divIcon({
       className: 'custom-heart-icon',
-      html: '💙',
-      iconSize: [32, 32],
-      iconAnchor: [16, 16]
+      html: emoji,
+      iconSize: [40, 40],
+      iconAnchor: [20, 20]
     });
-  
-    L.marker([myLat, myLng], { icon: heartIcon })
-      .addTo(map)
-      .bindPopup("💙 My Location 💙");
-  
-    let marker, loveLine;
-  
+
+    // Add permanent marker for your location
+    L.marker([MY_LAT, MY_LNG], {
+      icon: createHeartIcon('💙')
+    })
+    .addTo(map)
+    .bindPopup("My Permanent Location 💙")
+    .openPopup();
+
+    let userMarker, loveLine;
+
+    // Event Handlers
     button.addEventListener('click', () => {
+      button.disabled = true;
+      button.innerHTML = '⏳ Locating your heart...';
+      
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
-          (position) => {
-            const herLat = position.coords.latitude;
-            const herLng = position.coords.longitude;
-  
-            locationDiv.innerHTML = `💖 <strong>Your Location:</strong> ${herLat.toFixed(4)}, ${herLng.toFixed(4)}`;
-  
-            // Dynamic marker for her (viewer)
-            if (marker) {
-              marker.setLatLng([herLat, herLng]);
-            } else {
-              marker = L.marker([herLat, herLng])
-                .addTo(map)
-                .bindPopup("💖 Your Location 💖")
-                .openPopup();
-            }
-  
-            // Remove previous line
-            if (loveLine) {
-              map.removeLayer(loveLine);
-            }
-  
-            const points = [
-              [herLat, herLng],
-              [myLat, myLng]
-            ];
-  
-            const distance = getDistanceFromLatLonInKm(herLat, herLng, myLat, myLng);
-  
-            loveLine = L.polyline(points, {
-              color: 'hotpink',
-              weight: 4,
-              dashArray: '5, 10'
-            }).addTo(map)
-              .bindTooltip(`💕 ${distance.toFixed(2)} km 💕`, {
-                permanent: true,
-                direction: 'center',
-                className: 'text-pink-700 text-lg font-bold bg-white px-2 py-1 rounded'
-              })
-              .openTooltip();
-  
-            map.fitBounds(points, { padding: [50, 50] });
-  
-            distanceDiv.innerHTML = `You are <span class="text-3xl font-extrabold">${distance.toFixed(2)} km</span> away from me 💘`;
-          },
-          (error) => {
-            locationDiv.innerHTML = `<span class="text-red-600">❌ Error: ${error.message}</span>`;
-          }
+          handleLocationSuccess,
+          handleLocationError
         );
       } else {
-        locationDiv.innerHTML = `<span class="text-red-600">❌ Geolocation not supported</span>`;
+        showError('Geolocation is not supported by your browser ❌');
       }
     });
-  
-    // Haversine distance formula
-    function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
-      const R = 6371;
-      const dLat = deg2rad(lat2 - lat1);
-      const dLon = deg2rad(lon2 - lon1);
-      const a =
-        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
-        Math.sin(dLon / 2) * Math.sin(dLon / 2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-      return R * c;
+
+    // Location Success Handler
+    function handleLocationSuccess(position) {
+      const userLat = position.coords.latitude;
+      const userLng = position.coords.longitude;
+
+      // Update location display
+      locationDiv.innerHTML = `
+        <div class="bg-pink-100 border border-pink-200 text-pink-700 px-4 py-2 rounded-lg">
+          💖 Your Location: ${userLat.toFixed(5)}, ${userLng.toFixed(5)}
+        </div>
+      `;
+
+      // Update or create user marker
+      if (userMarker) {
+        userMarker.setLatLng([userLat, userLng]);
+      } else {
+        userMarker = L.marker([userLat, userLng], {
+          icon: createHeartIcon('💖')
+        })
+        .addTo(map)
+        .bindPopup("Your Loving Position 💖")
+        .openPopup();
+      }
+
+      // Update connection line
+      updateLoveLine(userLat, userLng);
+
+      // Calculate and display distance
+      const distance = calculateDistance(userLat, userLng, MY_LAT, MY_LNG);
+      updateDistanceDisplay(distance);
+
+      // Reset button
+      button.disabled = false;
+      button.innerHTML = '📍 Update My Location';
     }
-  
-    function deg2rad(deg) {
-      return deg * (Math.PI / 180);
+
+    // Update Love Connection Line
+    function updateLoveLine(userLat, userLng) {
+      if (loveLine) map.removeLayer(loveLine);
+      
+      const points = [[userLat, userLng], [MY_LAT, MY_LNG]];
+      
+      loveLine = L.polyline(points, {
+        color: '#ff69b4',
+        weight: 4,
+        dashArray: '8, 12',
+        lineJoin: 'round'
+      }).addTo(map)
+        .bindTooltip('', {permanent: true, className: 'love-tooltip'});
+
+      const distance = calculateDistance(userLat, userLng, MY_LAT, MY_LNG);
+      loveLine.setTooltipContent(`💞 ${distance.toFixed(2)} km between us 💞`);
+
+      map.flyToBounds(points, {
+        padding: [50, 50],
+        animate: true,
+        duration: 1.5
+      });
+    }
+
+    // Update Distance Display
+    function updateDistanceDisplay(distance) {
+      distanceDiv.innerHTML = `
+        <div class="space-y-2">
+          <div class="text-3xl font-black text-pink-600">
+            ${distance.toFixed(2)} km
+          </div>
+          <div class="text-sm font-medium text-pink-500">
+            (≈ ${(distance * 0.621371).toFixed(2)} miles)
+          </div>
+          <div class="text-lg mt-2">
+            ${distance < 1 ? '😍 We\'re practically together!' : 
+             distance < 10 ? '🥰 Just a short journey apart!' : 
+             '💕 No distance can diminish our love!'}
+          </div>
+        </div>
+      `;
+    }
+
+    // Error Handling
+    function handleLocationError(error) {
+      showError(`Location access denied ❌<br>Please enable permissions to see our love distance!`);
+      button.disabled = false;
+      button.innerHTML = '📍 Try Again';
+    }
+
+    function showError(message) {
+      locationDiv.innerHTML = `
+        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg">
+          ${message}
+        </div>
+      `;
+      setTimeout(() => locationDiv.innerHTML = '', 5000);
+    }
+
+    // Distance Calculation (Haversine formula)
+    function calculateDistance(lat1, lon1, lat2, lon2) {
+      if (Math.abs(lat1 - lat2) < 0.0001 && Math.abs(lon1 - lon2) < 0.0001) {
+        return 0;
+      }
+      
+      const R = 6371;
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = 
+        Math.sin(dLat/2) * Math.sin(dLat/2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLon/2) * Math.sin(dLon/2);
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     }
   </script>
-  
+
+  <footer class="text-pink-600/70 text-sm mt-8">
+    Made with 💝 
+  </footer>
+</body>
+</html>
