@@ -26,6 +26,11 @@
     #map {
       height: 400px;
     }
+    .custom-heart-icon {
+      font-size: 24px;
+      line-height: 1;
+      text-shadow: 1px 1px 2px #ff69b4;
+    }
   </style>
 </head>
 <body class="flex flex-col items-center justify-center min-h-screen p-4 space-y-6 text-center text-gray-800">
@@ -55,16 +60,24 @@
     const gfLat = 31.2526;
     const gfLng = 75.7040;
   
-    let map = L.map('map'); // initialize empty map
+    let map = L.map('map').setView([gfLat, gfLng], 6); // initialize map with girlfriend's location
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap'
     }).addTo(map);
   
-    // Add GF marker
-    L.marker([gfLat, gfLng])
+    // Custom heart icon for girlfriend's location
+    const heartIcon = L.divIcon({
+      className: 'custom-heart-icon',
+      html: '💖',
+      iconSize: [32, 32],
+      iconAnchor: [16, 16]
+    });
+
+    // Add GF marker with custom heart icon
+    L.marker([gfLat, gfLng], { icon: heartIcon })
       .addTo(map)
       .bindPopup("💖 Her Location 💖");
-  
+
     let marker, loveLine;
   
     button.addEventListener('click', () => {
